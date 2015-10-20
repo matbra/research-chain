@@ -21,6 +21,8 @@ import datetime
 
 import shutil
 
+import re
+
 from os import makedirs
 
 global settings
@@ -54,8 +56,8 @@ def find_next_settings_files(filename='settings.json'):
 def load_settings(filepath):
     settings = loadjson(filepath)
 
-    markers = {'hauptmaschine': '_home',
-               'blabla, hero': '_hero'}
+    markers = {'hauptmaschin': '_home',
+               'hero\d*': '_hero'}
 
     # process "special" entries (ending on "_hero"/"_work")
     remaining_items = settings.items()
@@ -66,6 +68,7 @@ def load_settings(filepath):
             continue
 
         b_markers_found = [False] * len(markers)
+        
         if key.endswith(tuple(markers.values())):
             # the current key ends with one of the markers
 
@@ -93,15 +96,23 @@ def load_settings(filepath):
                         basename = key[:pos_marker_start]
 
                 # pick the value from the settings list
-                local_marker = markers[gethostname()]
-
-                new_key = basename
-                new_value = settings[basename + local_marker]
-
-                new_entries[new_key] = new_value
-
-                for key_to_pop in [basename + marker for marker in markers.values()]:
-                    keys_to_pop.append(key_to_pop)
+                # 1. find the marker that applies here
+                b_match = False
+                for marker_key, marker_value in markers.items():
+                    b_match = re.match(marker_key + '$', gethostname())
+                    if b_match:
+                        break
+                    
+                if b_match:
+                    new_key = basename
+                    new_value = settings[basename + marker_value]
+    
+                    new_entries[new_key] = new_value
+    
+                    for key_to_pop in [basename + marker for marker in markers.values()]:
+                        keys_to_pop.append(key_to_pop)
+                else:
+                    logging.info("marker \"" + basename + "\" seems to be valid, but none of the hostnames (" + str(markers.keys()) + ") can be found.")
 
     for key_to_pop in keys_to_pop:
         settings.pop(key_to_pop)
