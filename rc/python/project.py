@@ -17,6 +17,15 @@ from pprint import pprint
 import logging
 logging.basicConfig(level=logging.INFO)
 
+import datetime
+
+import shutil
+
+from os import makedirs
+
+global settings
+global project_base_dir
+
 def find_next_settings_files(filename='settings.json'):
     # traverse the directories upwards to find and load the project's settings file
     cur_dirs = getcwd().split(sep)
@@ -25,11 +34,14 @@ def find_next_settings_files(filename='settings.json'):
     b_settings_found = False
     while len(cur_dirs) > 1:
         filepath = join(sep.join(cur_dirs), filename)
+
         if exists(filepath):
             with open(filepath) as file:
                 settings = load_settings(file)
                 logging.info("settings file found: {}".format(filepath))
                 b_settings_found = True
+
+                settings['project_base_dir'] = join(sep.join(cur_dirs))
                 break
         else:
             # one directory up in the tree
@@ -100,7 +112,32 @@ def load_settings(filepath):
 
     return settings
 
+settings = find_next_settings_files()
+
+def store_file(filename, comment="quicksave"):
+    # create timestamp
+    # timestamp = datetime.datetime.strftime(datetime.datetime.now(), "%Y-%M-%d_%H-%m-%S")
+
+    dir_output = datetime.datetime.strftime(datetime.datetime.now(), "%Y-%m-%d")
+    filename_output = datetime.datetime.strftime(datetime.datetime.now(), "%H-%M-%S")
+
+    dir_output = join(settings['project_base_dir'], 'inbox', dir_output)
+
+    if not exists(dir_output):
+        makedirs(dir_output)
+
+    # copy the file to the target directory
+    shutil.copyfile(src=filename, dst=join(dir_output, filename_output + '_' + filename))
+
+    # create a txt file in the target directory to store the comment
+    with open(join(dir_output, filename_output + '_' + filename + '_comment.txt'), 'w') as file:
+        file.write(comment)
+
+    # return timestamp
+
 if __name__ == "__main__":
     settings = find_next_settings_files()
 
     pprint(settings)
+
+    print(store_file("test.csv"))
