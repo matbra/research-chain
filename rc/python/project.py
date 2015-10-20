@@ -56,8 +56,9 @@ def find_next_settings_files(filename='settings.json'):
 def load_settings(filepath):
     settings = loadjson(filepath)
 
-    markers = {'hauptmaschin': '_home',
-               'hero\d*': '_hero'}
+    markers = {'hauptmaschine': '_home',
+               'hero\d*': '_hero',
+               'mpc.*': '_hero'}
 
     # process "special" entries (ending on "_hero"/"_work")
     remaining_items = settings.items()
@@ -109,11 +110,12 @@ def load_settings(filepath):
     
                     new_entries[new_key] = new_value
     
-                    for key_to_pop in [basename + marker for marker in markers.values()]:
+                    for key_to_pop in [basename + marker for marker in set(markers.values())]:
                         keys_to_pop.append(key_to_pop)
                 else:
                     logging.info("marker \"" + basename + "\" seems to be valid, but none of the hostnames (" + str(markers.keys()) + ") can be found.")
-
+                    logging.info("(the current hostname is \"" + gethostname() + "\".")
+                    
     for key_to_pop in keys_to_pop:
         settings.pop(key_to_pop)
 
