@@ -57,7 +57,7 @@
 (defun find-next-settings-file ()
   (setq cur-dir (buffer-file-name))
 
-  (setq idx-sep  (length cur-dir))
+  (setq idx-sep (length cur-dir))
   (setq b-stop-looping nil)
   (while (and (> idx-sep 0) (not b-stop-looping))
     ;; find the last path seperator in the path string
@@ -115,8 +115,9 @@
   (dolist (cur-file cur-files)
   (if (nth 1 cur-file) (add-to-list 'new-directories (nth 0 cur-file))))
 
-  (if (not new-directories)
-      (message "no directories found.")
+;  (if (not new-directories)
+      ;(message "no directories found.")
+  (if new-directories
     (progn
       (while new-directories
       (setq new-files-and-dirs (find-files-and-directories (concat dirname (car new-directories))))
@@ -129,15 +130,15 @@
   (dolist (cur-file cur-files)
     (if (not (nth 1 cur-file)) (add-to-list 'new-files (nth 0 cur-file))))
 
-  (dolist (new-file new-files)
-    (message (concat "path: " dirname ", file:" new-file)))
+;  (dolist (new-file new-files)
+;    (message (concat "path: " dirname ", file:" new-file)))
     (add-to-list 'all-files-and-dirs `((dir . ,dirname) (file . ,new-files)))
 
   all-files-and-dirs))
 
-(setq dir-project-root (find-next-settings-file))
-(setq dir-inbox (concat dir-project-root "inbox/"))
-(setq dirs-and-files (find-files-and-directories dir-inbox))
+;(setq dir-project-root (find-next-settings-file))
+;(setq dir-inbox (concat dir-project-root "inbox/"))
+;(setq dirs-and-files (find-files-and-directories dir-inbox))
 
 
 (defun create-file-selection-form (files-and-dirs)
@@ -168,7 +169,7 @@
 
       ; append the current file to the file table
       ;(message (line-number-at-pos))
-      (setq file-table (cons `(,(line-number-at-pos) ,(concat cur-dirname cur-file)) file-table))
+      (setq file-table (cons `(,(line-number-at-pos) ,(concat (file-name-as-directory cur-dirname) cur-file)) file-table))
 ;      (message file-table)
 ;      (print-elements-of-list file-table) ;
 
@@ -188,7 +189,10 @@
 ;  (message file-table)
   (use-local-map rc-menu-mode-map))
 
-(create-file-selection-form (find-files-and-directories dir-inbox))
+(defun insert-from-inbox ()
+  (interactive)
+  (setq dir-inbox (file-name-as-directory (concat (file-name-as-directory (find-next-settings-file)) "inbox")))
+  (create-file-selection-form (find-files-and-directories dir-inbox)))
 
 (defun get-file-at-line (line)
   (car (cdr (assoc line file-table))))
