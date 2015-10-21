@@ -14,6 +14,11 @@
 (define-key rc-menu-mode-map "\C-m" 'rc-menu-entry)
 
 
+(defun insert-org-image (filename)
+  (insert (concat "#+CAPTION: " filename "\n"))
+  (insert (concat "[[" filename "]]\n")))
+
+
 (defun rc-menu-quit ()
   "Quit the menu."
   (interactive)
@@ -26,12 +31,16 @@
 (defun rc-menu-entry ()
   "Select this line's buffer in this window."
   (interactive)
-  (message (current-menu-entry)))
+  (setq filename-to-insert (current-menu-entry))
+  (message filename-to-insert)
+  (switch-to-buffer (other-buffer))
+  (insert-org-image filename-to-insert))
 
 
 (defun current-menu-entry ()
   "Return buffer described by this line of buffer menu."
-(buffer-substring (point-at-bol) (point-at-eol)))
+  (get-file-at-line (line-number-at-pos)))
+
 
 ;; simply prints a list
 (defun print-elements-of-list (list)
@@ -135,6 +144,7 @@
   (switch-to-buffer "*Inbox Selection*")
   (kill-all-local-variables)
   (setq buffer-read-only nil)
+  (setq-local file-table '())
   (let ((inhibit-read-only t))
     (erase-buffer))
   (remove-overlays)
@@ -143,10 +153,10 @@
   (while files-and-dirs
     (setq cur-entry (car files-and-dirs))
     (message (cdr (assoc 'dir cur-entry)))
-    (setq cur-dirname (assoc 'dir cur-entry))
+    (setq cur-dirname (cdr (assoc 'dir cur-entry)))
     (setq cur-files (cdr (assoc 'file cur-entry)))
 
-    (insert (cdr (assoc 'dir cur-entry)))
+    (insert cur-dirname)
     (insert "\n")
     (insert (make-string 20 ?-))
     (insert "\n")
@@ -155,6 +165,12 @@
     (while cur-files
       (setq cur-file (car cur-files))
       (insert cur-file)
+
+      ; append the current file to the file table
+      ;(message (line-number-at-pos))
+      (setq file-table (cons `(,(line-number-at-pos) ,(concat cur-dirname cur-file)) file-table))
+;      (message file-table)
+;      (print-elements-of-list file-table) ;
 
       (setq cur-files (cdr cur-files))
 
@@ -168,9 +184,12 @@
   (setq buffer-read-only t)
 
   (interactive "p")
+
+;  (message file-table)
   (use-local-map rc-menu-mode-map))
 
 (create-file-selection-form (find-files-and-directories dir-inbox))
 
-
+(defun get-file-at-line (line)
+  (car (cdr (assoc line file-table))))
 
