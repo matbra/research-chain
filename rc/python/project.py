@@ -8,7 +8,7 @@ Created on Wed Oct 14 01:38:04 2015
 from os import getcwd
 from os.path import sep, join, exists
 
-from json import load as loadjson
+from json import load as loadjson, dump as dumpjson
 
 from socket import gethostname
 
@@ -28,7 +28,7 @@ from os import makedirs
 global settings
 global project_base_dir
 
-def find_next_settings_files(filename='settings.json'):
+def find_next_settings_files(filename='settings.json', b_return_path=False):
     # traverse the directories upwards to find and load the project's settings file
     cur_dirs = getcwd().split(sep)
     settings = None
@@ -51,8 +51,11 @@ def find_next_settings_files(filename='settings.json'):
     if not b_settings_found:
         logging.info("no settings file found.")
 
-    return settings
-
+    if b_return_path:
+        return settings, filepath
+    else:
+        return settings
+        
 def load_settings(filepath):
     settings = loadjson(filepath)
 
@@ -124,8 +127,26 @@ def load_settings(filepath):
         settings[new_key] = new_value
 
     return settings
+    
+def new_setting(key, value):
+    # try to load the settings
+    settings, settings_path = find_next_settings_files(b_return_path=True)
+    
+    # check whether the key is already in there
+    if key in settings.keys():
+        logging.info("the key is already stored.")
+    
+    # pre-process the value
+    if isinstance(value, str):
+        value.replace('\n', '\\n')
+    settings[key] = value
+    
+    # store the settings
+    with open(settings_path, 'w') as file:
+        dumpjson(settings, file)
+        logging.info("new settings written.")
 
-settings = find_next_settings_files()
+#settings = find_next_settings_files()
 
 def store_file(filename, comment="quicksave"):
     # create timestamp
