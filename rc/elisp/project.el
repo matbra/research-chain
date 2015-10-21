@@ -158,7 +158,9 @@
     (message (cdr (assoc 'dir cur-entry)))
     (setq cur-dirname (cdr (assoc 'dir cur-entry)))
     (setq cur-files (cdr (assoc 'file cur-entry)))
-
+    
+    ; format the text
+    ;(insert `(#'(,cur-dirname 0 5 (face bold))))
     (insert cur-dirname)
     (insert "\n")
     (insert (make-string 20 ?-))
@@ -172,17 +174,19 @@
 	;; read the comment from the corresponding file
 	(setq comment-file-name (concat (file-name-as-directory cur-dirname) cur-file "_comment.txt"))
 	(setq comment (read-file comment-file-name))
+	;(face-attribute 'bold :weight)
+
 	(insert cur-file)
 	(insert (make-string 4 ?\t))
 	(insert comment)
-
+	
 	; append the current file to the file table
 	; line-number, full path to file, contents of comments file
-	(setq file-table (cons `(,(line-number-at-pos) ,(concat (file-name-as-directory cur-dirname) cur-file) ,comment) file-table)))
-      (setq cur-files (cdr cur-files))
-
-      (if cur-files
-	  (insert "\n")))
+	(setq file-table (cons `(,(line-number-at-pos) ,(concat (file-name-as-directory cur-dirname) cur-file) ,comment) file-table))
+	(if (> (length cur-files) 1)
+	    (insert "\n")))
+	(beginning-of-line) ; looks nicer)
+      (setq cur-files (cdr cur-files)))
 
     (setq files-and-dirs (cdr files-and-dirs))
     (if files-and-dirs
