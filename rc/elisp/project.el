@@ -14,8 +14,17 @@
 (define-key rc-menu-mode-map "\C-m" 'rc-menu-entry)
 
 
-(defun insert-org-image (filename)
-  (insert (concat "#+CAPTION: " filename "\n"))
+(defun read-file (file)
+;; from http://stackoverflow.com/questions/20747190/read-from-a-file-into-a-emacs-lisp-list
+  (with-temp-buffer
+    (insert-file-contents file)
+    (buffer-substring-no-properties
+       (point-min)
+       (point-max))))
+
+
+(defun insert-org-image (filename  comment)
+  (insert (concat "#+CAPTION: " comment "\n"))
   (insert (concat "[[" filename "]]\n")))
 
 
@@ -31,10 +40,11 @@
 (defun rc-menu-entry ()
   "Select this line's buffer in this window."
   (interactive)
-  (setq filename-to-insert (current-menu-entry))
-  (message filename-to-insert)
+  (setq fileinfo-to-insert (current-menu-entry))
+  (setq filename (car fileinfo-to-insert))
+  (setq comment (car (cdr fileinfo-to-insert)))
   (switch-to-buffer (other-buffer))
-  (insert-org-image filename-to-insert))
+  (insert-org-image filename comment))
 
 
 (defun current-menu-entry ()
@@ -115,8 +125,6 @@
   (dolist (cur-file cur-files)
   (if (nth 1 cur-file) (add-to-list 'new-directories (nth 0 cur-file))))
 
-;  (if (not new-directories)
-      ;(message "no directories found.")
   (if new-directories
     (progn
       (while new-directories
@@ -130,15 +138,9 @@
   (dolist (cur-file cur-files)
     (if (not (nth 1 cur-file)) (add-to-list 'new-files (nth 0 cur-file))))
 
-;  (dolist (new-file new-files)
-;    (message (concat "path: " dirname ", file:" new-file)))
     (add-to-list 'all-files-and-dirs `((dir . ,dirname) (file . ,new-files)))
 
   all-files-and-dirs))
-
-;(setq dir-project-root (find-next-settings-file))
-;(setq dir-inbox (concat dir-project-root "inbox/"))
-;(setq dirs-and-files (find-files-and-directories dir-inbox))
 
 
 (defun create-file-selection-form (files-and-dirs)
@@ -165,14 +167,18 @@
     ;; add the files to the current dir
     (while cur-files
       (setq cur-file (car cur-files))
-      (insert cur-file)
 
-      ; append the current file to the file table
-      ;(message (line-number-at-pos))
-      (setq file-table (cons `(,(line-number-at-pos) ,(concat (file-name-as-directory cur-dirname) cur-file)) file-table))
-;      (message file-table)
-;      (print-elements-of-list file-table) ;
+      (when (not (string-match ".*_comment.txt$" cur-file))
+	;; read the comment from the corresponding file
+	(setq comment-file-name (concat (file-name-as-directory cur-dirname) cur-file "_comment.txt"))
+	(setq comment (read-file comment-file-name))
+	(insert cur-file)
+	(insert (make-string 4 ?\t))
+	(insert comment)
 
+	; append the current file to the file table
+	; line-number, full path to file, contents of comments file
+	(setq file-table (cons `(,(line-number-at-pos) ,(concat (file-name-as-directory cur-dirname) cur-file) ,comment) file-table)))
       (setq cur-files (cdr cur-files))
 
       (if cur-files
@@ -189,11 +195,13 @@
 ;  (message file-table)
   (use-local-map rc-menu-mode-map))
 
+
 (defun insert-from-inbox ()
   (interactive)
   (setq dir-inbox (file-name-as-directory (concat (file-name-as-directory (find-next-settings-file)) "inbox")))
   (create-file-selection-form (find-files-and-directories dir-inbox)))
 
+
 (defun get-file-at-line (line)
-  (car (cdr (assoc line file-table))))
+  (cdr (assoc line file-table)))
 
