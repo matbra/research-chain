@@ -104,65 +104,55 @@
 (defun find-files-and-directories (dirname)
   (let (cur-files '() all-files-and-dirs '())
   (setq cur-files (directory-files-and-attributes dirname))
-  ;(message (concat "parsing " dirname))
+
   ; throw away the dot entries
   ; (hopefully always first and second)
   (setq cur-files (cdr (cdr cur-files)))
-  ;(message cur-files)
 
   ;; find directories in the current dir
   (let (new-directories '())
-;  (setq new-directories '())
+
   (dolist (cur-file cur-files)
-    ;(message cur-file)
   (if (nth 1 cur-file) (add-to-list 'new-directories (nth 0 cur-file))))
 
   (if (not new-directories)
       (message "no directories found.")
     (progn
-      ;(message "directories:")
-      ;(print-elements-of-list new-directories)
-      ;(message "starting to look into them...")
       (while new-directories
       (setq new-files-and-dirs (find-files-and-directories (concat dirname (car new-directories))))
- ;     (message "new both: ")
- ;     (print-elements-of-list new-files-and-dirs)
       (dolist (new-file-and-dir new-files-and-dirs)
-;	(message (concat "new " new-file-and-dir))
 	(add-to-list 'all-files-and-dirs new-file-and-dir))
-      ;(message "after calling the function we have:")
-      ;(print-elements-of-list new-directories)
       (setq new-directories (cdr new-directories))))))
 
   ;; process the files in the current directory
   (setq new-files '())
-  ;(let (new-files '())
   (dolist (cur-file cur-files)
     (if (not (nth 1 cur-file)) (add-to-list 'new-files (nth 0 cur-file))))
 
-  ;(message (concat "files:"))
-  ;(print-elements-of-list new-files)
+  (dolist (new-file new-files)
+    (message (concat "path: " dirname ", file:" new-file)))
+;    (add-to-list 'all-files-and-dirs (concat (file-name-as-directory dirname) new-file)))
+;    (add-to-list 'all-files-and-dirs (concat 
+    (add-to-list 'all-files-and-dirs `((dir . ,dirname) (file . ,new-files)))
 
-(dolist (new-file new-files)
-  (add-to-list 'all-files-and-dirs (concat (file-name-as-directory dirname) new-file)))
-  all-files-and-dirs;
-
-;(message (concat "bla " all-files-and-dirs))
-)
-;(setq paths '())
-
-;(print-elements-of-list paths)
-
-;paths
+;(message "stored everything")
 
 
-  
-)
+;    (message all-files-and-dirs)
+  all-files-and-dirs))
+
+
 
 
 
 (setq dir-project-root (find-next-settings-file))
 (setq dir-inbox (concat dir-project-root "inbox/"))
-(print-elements-of-list (find-files-and-directories dir-inbox))
+;(print-elements-of-list (find-files-and-directories dir-inbox))
+(setq dirs-and-files (find-files-and-directories dir-inbox))
+
+;(print-elements-of-list (cdr (car dirs-and-files)))
+
+
+
 
 
