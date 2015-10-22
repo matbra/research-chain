@@ -28,10 +28,10 @@ from os import makedirs
 global settings
 global project_base_dir
 
-def find_next_settings_files(filename='settings.json', b_return_path=False):
+def find_settings_file(filename='settings.json'):
     # traverse the directories upwards to find and load the project's settings file
     cur_dirs = getcwd().split(sep)
-    settings = None
+#    settings = None
 
     b_settings_found = False
     while len(cur_dirs) > 1:
@@ -39,98 +39,110 @@ def find_next_settings_files(filename='settings.json', b_return_path=False):
 
         if exists(filepath):
             with open(filepath) as file:
-                settings = load_settings(file)
+#                settings = load_settings(file)
                 logging.info("settings file found: {}".format(filepath))
                 b_settings_found = True
 
-                settings['project_base_dir'] = join(sep.join(cur_dirs))
+#                settings['project_base_dir'] = join(sep.join(cur_dirs))
                 break
         else:
             # one directory up in the tree
             cur_dirs = cur_dirs[:-1]
-    if not b_settings_found:
-        logging.info("no settings file found.")
-
-    if b_return_path:
-        return settings, filepath
+#    if not b_settings_found:
+#        logging.info("no settings file found.")
+    if b_settings_found:
+        return sep.join(cur_dirs), filename
     else:
-        return settings
+        return None
         
-def load_settings(filepath):
-    settings = loadjson(filepath)
+def load_settings(process_markers=True):
+    # first get the path of the settings file
+    settings_filepath, settings_filename = find_settings_file()
+    
+    if settings_filepath:
+        with open(join(settings_filepath, settings_filename)) as file:
+            settings = loadjson(file)
+            logging.info("settings file loaded.")
+            settings['project_base_dir'] = settings_filepath
+    else:
+        logging.info("no settings file found.")
+    
+#    settings = loadjson(filepath)
 
     markers = {'hauptmaschine': '_home',
                'hero\d*': '_hero',
                'mpc.*': '_hero'}
-
-    # process "special" entries (ending on "_hero"/"_work")
-    remaining_items = settings.items()
-    keys_to_pop = []
-    new_entries = {}
-    for index, (key, value) in enumerate(remaining_items):
-        if key in keys_to_pop:
-            continue
-
-        b_markers_found = [False] * len(markers)
-        
-        if key.endswith(tuple(markers.values())):
-            # the current key ends with one of the markers
-
-            # try to find all markers
-            for idx_marker, (marker_name, marker) in enumerate(markers.items()):
-                for key2, value2 in remaining_items:
-                    pos_marker_start = key2.find(marker)
-
-                    if pos_marker_start != -1:
-                        b_markers_found[idx_marker] = True
-
-                        break
-
-                if all(b_markers_found):
-                    break
-
-            if all(b_markers_found):
-                # find which marker we have
+               
+    if process_markers:
+        # process "special" entries (ending on "_hero"/"_work")
+        remaining_items = settings.items()
+        keys_to_pop = []
+        new_entries = {}
+        for index, (key, value) in enumerate(remaining_items):
+            if key in keys_to_pop:
+                continue
+    
+            b_markers_found = [False] * len(markers)
+            
+            if key.endswith(tuple(markers.values())):
+                # the current key ends with one of the markers
+    
+                # try to find all markers
                 for idx_marker, (marker_name, marker) in enumerate(markers.items()):
-                    pos_marker_start = key.find(marker)
-
-                    if pos_marker_start != -1:
-                        # found_marker = marker
-
-                        basename = key[:pos_marker_start]
-
-                # pick the value from the settings list
-                # 1. find the marker that applies here
-                b_match = False
-                for marker_key, marker_value in markers.items():
-                    b_match = re.match(marker_key + '$', gethostname())
-                    if b_match:
+                    for key2, value2 in remaining_items:
+                        pos_marker_start = key2.find(marker)
+    
+                        if pos_marker_start != -1:
+                            b_markers_found[idx_marker] = True
+    
+                            break
+    
+                    if all(b_markers_found):
                         break
-                    
-                if b_match:
-                    new_key = basename
-                    new_value = settings[basename + marker_value]
     
-                    new_entries[new_key] = new_value
+                if all(b_markers_found):
+                    # find which marker we have
+                    for idx_marker, (marker_name, marker) in enumerate(markers.items()):
+                        pos_marker_start = key.find(marker)
     
-                    for key_to_pop in [basename + marker for marker in set(markers.values())]:
-                        keys_to_pop.append(key_to_pop)
-                else:
-                    logging.info("marker \"" + basename + "\" seems to be valid, but none of the hostnames (" + str(markers.keys()) + ") can be found.")
-                    logging.info("(the current hostname is \"" + gethostname() + "\".")
-                    
-    for key_to_pop in keys_to_pop:
-        settings.pop(key_to_pop)
-
-    # add new entries
-    for new_key, new_value in new_entries.items():
-        settings[new_key] = new_value
+                        if pos_marker_start != -1:
+                            # found_marker = marker
+    
+                            basename = key[:pos_marker_start]
+    
+                    # pick the value from the settings list
+                    # 1. find the marker that applies here
+                    b_match = False
+                    for marker_key, marker_value in markers.items():
+                        b_match = re.match(marker_key + '$', gethostname())
+                        if b_match:
+                            break
+                        
+                    if b_match:
+                        new_key = basename
+                        new_value = settings[basename + marker_value]
+        
+                        new_entries[new_key] = new_value
+        
+                        for key_to_pop in [basename + marker for marker in set(markers.values())]:
+                            keys_to_pop.append(key_to_pop)
+                    else:
+                        logging.info("marker \"" + basename + "\" seems to be valid, but none of the hostnames (" + str(markers.keys()) + ") can be found.")
+                        logging.info("(the current hostname is \"" + gethostname() + "\".")
+                        
+        for key_to_pop in keys_to_pop:
+            settings.pop(key_to_pop)
+    
+        # add new entries
+        for new_key, new_value in new_entries.items():
+            settings[new_key] = new_value
 
     return settings
     
 def new_setting(key, value):
-    # try to load the settings
-    settings, settings_path = find_next_settings_files(b_return_path=True)
+    settings_path, settings_filename = find_settings_file()
+    
+    settings = load_settings(process_markers=False)
     
     # check whether the key is already in there
     if key in settings.keys():
