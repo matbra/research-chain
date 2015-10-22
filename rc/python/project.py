@@ -152,6 +152,8 @@ def store_file(filename, comment="quicksave"):
     # create timestamp
     # timestamp = datetime.datetime.strftime(datetime.datetime.now(), "%Y-%M-%d_%H-%m-%S")
 
+    settings = find_next_settings_files()
+
     dir_output = datetime.datetime.strftime(datetime.datetime.now(), "%Y-%m-%d")
     filename_output = datetime.datetime.strftime(datetime.datetime.now(), "%H-%M-%S")
 
@@ -159,9 +161,12 @@ def store_file(filename, comment="quicksave"):
 
     if not exists(dir_output):
         makedirs(dir_output)
+        
+    # obtain the full path to the source file
+    filepath = join(getcwd(), filename)
 
     # copy the file to the target directory
-    shutil.copyfile(src=filename, dst=join(dir_output, filename_output + '_' + filename))
+    shutil.copyfile(src=filepath, dst=join(dir_output, filename_output + '_' + filename))
 
     # create a txt file in the target directory to store the comment
     with open(join(dir_output, filename_output + '_' + filename + '_comment.txt'), 'w') as file:
