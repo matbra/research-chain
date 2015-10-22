@@ -182,7 +182,9 @@
       (when (not (string-match ".*_comment.txt$" cur-file))
 	;; read the comment from the corresponding file
 	(setq comment-file-name (concat (file-name-as-directory cur-dirname) cur-file "_comment.txt"))
-	(setq comment (read-file comment-file-name))
+	(if (file-exists-p comment-file-name)
+	    (setq comment (read-file comment-file-name))
+	  (setq comment "[no comment specified]"))
 	;(face-attribute 'bold :weight)
 
 	(insert cur-file)
