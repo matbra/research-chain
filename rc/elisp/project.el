@@ -1,8 +1,12 @@
+;;; test package --- la di da di
+
 ;; for the menu i learned quite a lot from buff-menu.el
 ;; (http://www.mit.edu/afs.new/athena/astaff/source/src-8.2/third/emacs/lisp/buff-menu.el)
 
 (require 'json)
 (require 'widget)
+
+(global-set-key (kbd "C-c f i") 'insert-from-inbox)
 
 (setq path-seperator '"/")
 (setq settings-file-name '"settings.json")
@@ -104,11 +108,11 @@
 (defun find-all-inbox-entries ()
   ;; get the project directory
   (setq dir-project-root (find-next-settings-file))
-  (setq dir-inbox (concat dir-project-root "inbox/"))
-  (message dir-inbox)
+  (setq dir-inbox (concat dir-project-root "inbox/")))
+;  (message dir-inbox)
 
   ;; traverse through the subdirectories
-  (message (directory-files-and-attributes dir-inbox)))
+;  (message (directory-files-and-attributes dir-inbox)))
 
 
 (defun find-files-and-directories (dirname)
@@ -152,10 +156,13 @@
     (erase-buffer))
   (remove-overlays)
 
+  ;; show some information
+  (message "[Enter] - select / q - quit")
+
   ;; write the names of all directories and files into the buffer
   (while files-and-dirs
     (setq cur-entry (car files-and-dirs))
-    (message (cdr (assoc 'dir cur-entry)))
+;    (message (cdr (assoc 'dir cur-entry)))
     (setq cur-dirname (cdr (assoc 'dir cur-entry)))
     (setq cur-files (cdr (assoc 'file cur-entry)))
     
@@ -170,6 +177,8 @@
     (while cur-files
       (setq cur-file (car cur-files))
 
+      ;(message cur-file)
+
       (when (not (string-match ".*_comment.txt$" cur-file))
 	;; read the comment from the corresponding file
 	(setq comment-file-name (concat (file-name-as-directory cur-dirname) cur-file "_comment.txt"))
@@ -183,7 +192,7 @@
 	; append the current file to the file table
 	; line-number, full path to file, contents of comments file
 	(setq file-table (cons `(,(line-number-at-pos) ,(concat (file-name-as-directory cur-dirname) cur-file) ,comment) file-table))
-	(if (> (length cur-files) 1)
+	(if (> (length cur-files) 0)
 	    (insert "\n")))
 	(beginning-of-line) ; looks nicer)
       (setq cur-files (cdr cur-files)))
@@ -199,7 +208,7 @@
 ;  (message file-table)
   (use-local-map rc-menu-mode-map))
 
-
+;;;###autoload
 (defun insert-from-inbox ()
   (interactive)
   (setq dir-inbox (file-name-as-directory (concat (file-name-as-directory (find-next-settings-file)) "inbox")))
@@ -209,3 +218,4 @@
 (defun get-file-at-line (line)
   (cdr (assoc line file-table)))
 
+(provide 'project)
