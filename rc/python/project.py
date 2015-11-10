@@ -71,7 +71,8 @@ def load_settings(process_markers=True):
 
     markers = {'hauptmaschine': '_home',
                'hero\d*': '_hero',
-               'mpc.*': '_hero'}
+               'mpc.*': '_hero',
+               'vxs\d*': '_hero'}
                
     if process_markers:
         # process "special" entries (ending on "_hero"/"_work")
@@ -164,7 +165,7 @@ def store_file(filename, comment="quicksave"):
     # create timestamp
     # timestamp = datetime.datetime.strftime(datetime.datetime.now(), "%Y-%M-%d_%H-%m-%S")
 
-    settings = find_next_settings_files()
+    settings = load_settings()
 
     dir_output = datetime.datetime.strftime(datetime.datetime.now(), "%Y-%m-%d")
     filename_output = datetime.datetime.strftime(datetime.datetime.now(), "%H-%M-%S")
