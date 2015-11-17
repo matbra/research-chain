@@ -27,8 +27,9 @@
        (point-max))))
 
 
-(defun insert-org-image (filename  comment)
+(defun insert-org-image (filename comment reference-name)
   (insert (concat "#+CAPTION: " comment "\n"))
+  (insert (concat "#+NAME: fig:" reference-name "\n"))
   (insert (concat "[[" filename "]]\n")))
 
 
@@ -46,9 +47,10 @@
   (interactive)
   (setq fileinfo-to-insert (current-menu-entry))
   (setq filename (car fileinfo-to-insert))
-  (setq comment (car (cdr fileinfo-to-insert)))
+  (setq reference-name (car (cdr fileinfo-to-insert)))
+  (setq comment (car (last fileinfo-to-insert)))
   (switch-to-buffer (other-buffer))
-  (insert-org-image filename comment))
+  (insert-org-image filename comment reference-name))
 
 
 (defun current-menu-entry ()
@@ -158,10 +160,12 @@
   ;; write the names of all directories and files into the buffer
   (while files-and-dirs
     (setq cur-entry (car files-and-dirs))
-;    (message (cdr (assoc 'dir cur-entry)))
     (setq cur-dirname (cdr (assoc 'dir cur-entry)))
     (setq cur-files (cdr (assoc 'file cur-entry)))
-    
+
+    ; determine the last subdirectory of the current entry
+    (setq cur-lastpath (car (last (split-string cur-dirname "/"))))
+
     ; format the text
     (insert cur-dirname)
     (insert "\n")
@@ -172,8 +176,6 @@
     (while cur-files
       (setq cur-file (car cur-files))
 
-      ;(message cur-file)
-
       (when (not (string-match ".*_comment.txt$" cur-file))
 	;; read the comment from the corresponding file
 	(setq comment-file-name (concat (file-name-as-directory cur-dirname) cur-file "_comment.txt"))
@@ -181,13 +183,16 @@
 	    (setq comment (read-file comment-file-name))
 	  (setq comment "[no comment specified]"))
 
+	 ; determine the file name that is to be used as a reference name
+         (setq cur-reference-name (concat cur-lastpath "/" (file-name-sans-extension cur-file)))
+
 	(insert cur-file)
 	(insert (make-string 4 ?\t))
 	(insert comment)
 	
 	; append the current file to the file table
 	; line-number, full path to file, contents of comments file
-	(setq file-table (cons `(,(line-number-at-pos) ,(concat (file-name-as-directory cur-dirname) cur-file) ,comment) file-table))
+	(setq file-table (cons `(,(line-number-at-pos) ,(concat (file-name-as-directory cur-dirname) cur-file) ,cur-reference-name ,comment) file-table))
 	(if (> (length cur-files) 0)
 	    (insert "\n")))
 	(beginning-of-line) ; looks nicer)
@@ -201,7 +206,6 @@
 
   (interactive "p")
 
-;  (message file-table)
   (use-local-map rc-menu-mode-map))
 
 ;;;###autoload
@@ -212,6 +216,7 @@
 
 
 (defun get-file-at-line (line)
+; (message file-table)
   (cdr (assoc line file-table)))
 
 (provide 'project)
