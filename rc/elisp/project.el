@@ -109,10 +109,6 @@
   ;; get the project directory
   (setq dir-project-root (find-next-settings-file))
   (setq dir-inbox (concat dir-project-root "inbox/")))
-;  (message dir-inbox)
-
-  ;; traverse through the subdirectories
-;  (message (directory-files-and-attributes dir-inbox)))
 
 
 (defun find-files-and-directories (dirname)
@@ -167,7 +163,6 @@
     (setq cur-files (cdr (assoc 'file cur-entry)))
     
     ; format the text
-    ;(insert `(#'(,cur-dirname 0 5 (face bold))))
     (insert cur-dirname)
     (insert "\n")
     (insert (make-string 20 ?-))
@@ -185,7 +180,6 @@
 	(if (file-exists-p comment-file-name)
 	    (setq comment (read-file comment-file-name))
 	  (setq comment "[no comment specified]"))
-	;(face-attribute 'bold :weight)
 
 	(insert cur-file)
 	(insert (make-string 4 ?\t))
