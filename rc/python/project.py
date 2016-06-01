@@ -28,6 +28,9 @@ from os import makedirs
 global settings
 global project_base_dir
 
+def athome():
+    return gethostname() == 'hauptmaschine'
+
 def find_settings_file(filename='settings.json'):
     # traverse the directories upwards to find and load the project's settings file
     cur_dirs = getcwd().split(sep)
