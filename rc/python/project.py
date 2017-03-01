@@ -6,13 +6,16 @@ Created on Wed Oct 14 01:38:04 2015
 """
 
 from os import getcwd
-from os.path import sep, join, exists
+from os.path import sep, join, exists, split, dirname
 
 from json import load as loadjson, dump as dumpjson
 
 from socket import gethostname
 
 from pprint import pprint
+
+from inspect import getsource, getmodule, stack
+from importlib import import_module
 
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -23,6 +26,8 @@ import shutil
 
 import re
 
+import pandas as pd
+
 from os import makedirs
 
 global settings
@@ -30,6 +35,57 @@ global project_base_dir
 
 def athome():
     return gethostname() == 'hauptmaschine'
+
+if athome():
+    # stuff concerning ggplot2
+    from rpy2.robjects.packages import importr
+    import rpy2.robjects as robj
+    import rpy2.robjects.lib.ggplot2 as ggplot
+    import rpy2.robjects.pandas2ri
+    from rpy2.rinterface import RRuntimeWarning
+    robj.pandas2ri.activate()
+
+    plot_fixed_width = robj.r("""
+            function(p) {
+            grob = ggplotGrob(p)
+
+            # TODO: the magic 3 here could lead to problems. find the right "spacer" element...
+            grob$widths[3] = unit(1, "cm")
+
+            grid.draw(grob)
+            }
+        """)
+
+def point2inch(point):
+    return point / 72
+
+textwidth_pt = 386.95749
+
+golden_ratio = (1 + 5**(1/2)) / 2
+
+
+
+
+
+# globals
+GRAPHIC_FORMATS = ['tikz', 'pdf']
+
+def cleancode(code):
+    # find the number of tabs in the first line
+    N_spaces = 0
+    while code[N_spaces] == " ":
+        N_spaces += 1
+
+    lines = code.split("\n")
+
+    for idx, line in enumerate(lines):
+        lines[idx] = line[N_spaces:]
+
+    return "\n".join(lines)
+
+
+
+
 
 def find_settings_file(filename='settings.json'):
     # traverse the directories upwards to find and load the project's settings file
@@ -189,6 +245,105 @@ def store_file(filename, comment="quicksave"):
         file.write(comment)
 
     # return timestamp
+
+
+def save_figure(f_plot, tab_data, filename_output, b_serialize=True):
+    if b_serialize:
+        # write the code of the plot function to a file in the target directory
+        dir_target, file_target = split(filename_output)
+
+        with open(filename_output + '.py', 'w') as f:
+            f.write("import sys\n")
+            f.write("import numpy as np\n")
+            f.write("sys.path.append(\"{}\")\n".format(dirname(__file__)))
+            # f.write("from project import ggplot, theme_minimal, theme_my, plot_fixed_width\n")
+            f.write("from project import plot_fixed_width\n")
+            f.write("import rpy2.robjects as robj\n\n")
+            f.write(cleancode(getsource(f_plot)))
+            # f.write("\n    width, height = set_panel_size(pp)\n")
+            # f.write("\n    pp.plot()\n")
+            f.write("    plot_fixed_width(pp)")
+            # f.write("    return width, height")
+
+        # write the data
+        tab_data.to_csv(filename_output + '.data')
+
+        generate_figure(filename_output)
+        return
+    else:
+        generate_figure(filename_output)
+
+def generate_figure(filepath):
+    # this is all for plotting functions ---
+
+
+    from warnings import filterwarnings
+
+    # switch off R warnings
+    filterwarnings("ignore", category=RRuntimeWarning)
+
+    grdevices = importr("grDevices")
+    tikzDevice = importr("tikzDevice")
+    scales = importr("scales")
+    grid = importr("grid")
+
+
+    # ---
+
+    # load the data
+    tab_data = pd.read_csv(filepath + '.data')
+
+    path_package = split(filepath)[0].replace(".", "").replace("/", ".")
+    filename = split(filepath)[1]
+
+    frm = stack()[2]
+    mod = getmodule(frm[0])
+
+    # plot = import_module(path_package + '.' + filename, package=mod.__name__)
+    with open(filepath + ".py", "r") as f:
+        code = f.read()
+
+    exec(code, globals())
+
+    # plot.tab_data = tab_data
+
+    robj.r("Sys.setlocale('LC_NUMERIC', 'en_GB.UTF-8')")
+    robj.r("options(tikzLatexPackages = c(getOption('tikzLatexPackages'), '\\\\usepackage{amsmath}'))")
+
+    robj.r("options(tikzMetricPackages = c(getOption('tikzMetricPackages'), '\\\\usepackage{amsmath}'))")
+    #
+    # switch off warnings
+    # robj.r('options(\'warn\'=-1)')
+
+    # filename_output = "figure_7_totalErrorProbability_upper"
+
+    width_in = point2inch(textwidth_pt)
+    height_in = point2inch(textwidth_pt) / golden_ratio
+
+    for format in GRAPHIC_FORMATS:
+        if format == 'tikz':
+            tikzDevice.tikz(file=filepath + ".tikz", standAlone=False, \
+                    documentDeclaration="\documentclass[12pt]{scrreport}", \
+                    width=width_in, height=height_in)#, packages="\\usepackage{amsmath}")
+            #tikzDevice.tikzAnnotate("\let\pgfimageWithoutPath\pgfimage")
+            #tikzDevice.tikzAnnotate("\renewcommand{\pgfimage}[2][]{\pgfimageWithoutPath[#1]{figures/#2}}")
+        elif format == 'pdf':
+            # for pdf output
+            grdevices.pdf(file=filepath + ".pdf")
+
+    # tikzDevice.tikzAnnotate(
+    #     "\\renewcommand{\pgfimage}[2][]{\pgfimageWithoutPath[#1]{./figures/articles/hum_detector/#2}}")
+
+    #    exec(f_plot)
+    #     exec(f_plot, locals())
+    #     pp =
+    # plot.plot()
+        plot(tab_data)
+        # plot_fixed_width
+        # pp.plot()
+        # ggplot.ggplot.save(filename_output + '.pdf')
+
+        grdevices.dev_off()
 
 if __name__ == "__main__":
     settings = find_next_settings_files()
