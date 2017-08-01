@@ -109,7 +109,7 @@ def find_settings_file(filename='settings.json'):
     if b_settings_found:
         return sep.join(cur_dirs), filename
     else:
-        return None
+        raise Exception("no settings file found.")
         
 def load_settings(process_markers=True):
     # first get the path of the settings file
