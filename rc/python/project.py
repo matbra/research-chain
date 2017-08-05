@@ -249,7 +249,7 @@ def store_file(filename, comment="quicksave"):
     # return timestamp
 
 
-def save_figure(f_plot, tab_data, filename_output, b_serialize=True):
+def save_figure(f_plot, tab_data, filename_output, b_serialize=True, fac_size=1):
     if b_serialize:
         # write the code of the plot function to a file in the target directory
         dir_target, file_target = split(filename_output)
@@ -266,6 +266,16 @@ def save_figure(f_plot, tab_data, filename_output, b_serialize=True):
             # f.write("\n    pp.plot()\n")
             # f.write("    plot_fixed_width(pp)")
             # f.write("    return width, height")
+
+        # process the size factors
+        if fac_size:
+            if not isinstance(fac_size, list):
+                # equal scaling for both dimensions
+                fac_size = [fac_size, fac_size]
+
+        with open(filename_output + '.size', 'w') as f:
+            f.write(str(fac_size[0]) + '\n')
+            f.write(str(fac_size[1]))
 
         def savedata(data, filename_output):
             # write file type information to the file
@@ -324,7 +334,7 @@ def generate_figure(filepath):
         file = splitext(file)[0]
         data_file_names.append(file)
 
-    print(data_file_names)
+    # print(data_file_names)
 
     cur_data_file_names = []
     indices = []
@@ -397,8 +407,20 @@ def generate_figure(filepath):
 
     # filename_output = "figure_7_totalErrorProbability_upper"
 
+
+
     width_in = point2inch(textwidth_pt)
     height_in = point2inch(textwidth_pt) / golden_ratio
+
+    # load size information
+    with open(filepath + '.size', 'r') as file:
+        fac_size = file.readlines()
+
+    fac_size = [float(_) for _ in fac_size]
+
+    width_in *= fac_size[0]
+    height_in *= fac_size[1]
+
 
     for format in GRAPHIC_FORMATS:
         if format == 'tikz':
@@ -462,7 +484,7 @@ def run_tikzexternalize(filepath):
     arguments = "--jobname={}".format(jobname, filename_tex_base)
 
     from subprocess import Popen
-    p = Popen([command, arguments, filename_tex_base], cwd=path_tex)
+    p = Popen([command, arguments, filename_tex_base, '> /dev/null'], cwd=path_tex)
     p.wait()
 
     # call([command, arguments])
