@@ -5,8 +5,9 @@ Created on Wed Oct 14 01:38:04 2015
 @author: matthias
 """
 
-from os import getcwd
-from os.path import sep, join, exists, split, dirname, basename, splitext
+from os import getcwd, rename
+from os.path import sep, join, exists, split, dirname, basename, splitext, abspath
+
 
 from json import load as loadjson, dump as dumpjson
 
@@ -331,7 +332,11 @@ def generate_figure(filepath):
         re_result = re.match("^{}((?=_)_(?P<idx>[0-9])*)?$".format(basename(filepath)), file)
         if re_result:
             cur_data_file_names.append(file)
-            indices.append(int(re_result.group('idx')))
+            idx = re_result.group('idx')
+            if idx:
+                indices.append(int(idx))
+            else:
+                indices.append(len(cur_data_file_names)-1)
 
     cur_data_file_names = [cur_data_file_names[_] for _ in indices]
 
@@ -406,6 +411,7 @@ def generate_figure(filepath):
             # for pdf output
             grdevices.pdf(file=filepath + ".pdf")
 
+
     # tikzDevice.tikzAnnotate(
     #     "\\renewcommand{\pgfimage}[2][]{\pgfimageWithoutPath[#1]{./figures/articles/hum_detector/#2}}")
 
@@ -419,6 +425,47 @@ def generate_figure(filepath):
         # ggplot.ggplot.save(filename_output + '.pdf')
 
         grdevices.dev_off()
+
+    adjust_relative_raster_path(filepath)
+    run_tikzexternalize(filepath)
+
+def adjust_relative_raster_path(filepath):
+    plot_name = split(filepath)[1]
+    subdir = split(filepath)[0].replace("../", "")
+
+    # rename the original file
+    rename(filepath + '.tikz', filepath + '_orig.tikz')
+
+    # read the file line by line and replace every occurrence of [plot_name] with the relative-path-adjusted version
+    with open(filepath + '_orig.tikz', 'r') as file_in:
+        with open(filepath + '.tikz', 'w') as file_out:
+            for line in file_in:
+
+                line = line.replace(plot_name, join(subdir, plot_name))
+
+                file_out.write(line)
+
+
+
+def run_tikzexternalize(filepath):
+    # remove relative path indicators
+    jobname =  filepath.replace("../", "")
+
+    global filename_tex
+
+    # determine the location of the main tex file
+    path_tex = abspath(split(filename_tex)[0])
+    filename_tex_base = basename(filename_tex)
+
+    # run pdflatex with the current plot's jobname
+    command = "pdflatex"
+    arguments = "--jobname={}".format(jobname, filename_tex_base)
+
+    from subprocess import Popen
+    p = Popen([command, arguments, filename_tex_base], cwd=path_tex)
+    p.wait()
+
+    # call([command, arguments])
 
 if __name__ == "__main__":
     settings = find_next_settings_files()
