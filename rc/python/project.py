@@ -6,7 +6,7 @@ Created on Wed Oct 14 01:38:04 2015
 """
 
 from os import getcwd
-from os.path import sep, join, exists, split, dirname
+from os.path import sep, join, exists, split, dirname, basename, splitext
 
 from json import load as loadjson, dump as dumpjson
 
@@ -28,10 +28,14 @@ import re
 
 import pandas as pd
 
-from os import makedirs
+from os import makedirs, listdir
 
 global settings
 global project_base_dir
+
+# load local settings
+if exists(join(dirname(__file__), "settings.py")):
+    from settings import *
 
 def athome():
     return gethostname() == 'hauptmaschine'
@@ -259,11 +263,29 @@ def save_figure(f_plot, tab_data, filename_output, b_serialize=True):
             f.write(cleancode(getsource(f_plot)))
             # f.write("\n    width, height = set_panel_size(pp)\n")
             # f.write("\n    pp.plot()\n")
-            f.write("    plot_fixed_width(pp)")
+            # f.write("    plot_fixed_width(pp)")
             # f.write("    return width, height")
 
+        def savedata(data, filename_output):
+            # write file type information to the file
+            with open(filename_output, 'w') as file:
+                file.write(str(type(data)) + "\n")
+            if isinstance(data, pd.DataFrame):
+                data.to_csv(filename_output, mode='a')
+            elif isinstance(data, float):
+                with open(filename_output, 'a') as f:
+                    f.write(str(data))
+
         # write the data
-        tab_data.to_csv(filename_output + '.data')
+        if isinstance(tab_data, list):
+            # this is newly added support for multiple parameters
+            for idx, param in enumerate(tab_data):
+                filename_output_iter = filename_output + '_' + str(idx) + '.data'
+                savedata(param, filename_output_iter)
+        else:
+            # the usual case: one table
+            #tab_data.to_csv(filename_output + '.data')
+            savedata(tab_data, filename_output + '.data')
 
         generate_figure(filename_output)
         return
@@ -288,7 +310,54 @@ def generate_figure(filepath):
     # ---
 
     # load the data
-    tab_data = pd.read_csv(filepath + '.data')
+
+    # here starts the newly added support for multiple parameters
+
+    # first: find the associated files
+    # N_files = 1
+    # find the file names of data files
+    data_file_names = []
+    for file in listdir(dirname(filepath)):
+        if splitext(file)[1] != '.data':
+            continue
+        file = splitext(file)[0]
+        data_file_names.append(file)
+
+    print(data_file_names)
+
+    cur_data_file_names = []
+    indices = []
+    for file in data_file_names:
+        re_result = re.match("^{}((?=_)_(?P<idx>[0-9])*)?$".format(basename(filepath)), file)
+        if re_result:
+            cur_data_file_names.append(file)
+            indices.append(int(re_result.group('idx')))
+
+    cur_data_file_names = [cur_data_file_names[_] for _ in indices]
+
+    # this is a function that reads data from ascii files
+    def loaddata(filename):
+        with open(filename + '.data', 'r') as file:
+            format = file.readline()[:-1] # remove newline character
+
+        if format == "<class 'pandas.core.frame.DataFrame'>":
+            return pd.read_csv(filename + '.data', skiprows=1)
+        elif format == '<class \'float\'>':
+            with open(filename + '.data', 'r') as file:
+                for _ in range(2):
+                    line = file.readline()
+
+                return float(line)
+        else:
+            print(format)
+            raise RuntimeError('unknown format')
+
+    if len(cur_data_file_names) == 1:
+        tab_data = loaddata(join(dirname(filepath), cur_data_file_names[0])) #pd.read_csv(file[0] + '.data')
+    else:
+        tab_data = []
+        for file in cur_data_file_names:
+            tab_data.append(loaddata(join(dirname(filepath), file)))
 
     path_package = split(filepath)[0].replace(".", "").replace("/", ".")
     filename = split(filepath)[1]
@@ -299,6 +368,15 @@ def generate_figure(filepath):
     # plot = import_module(path_package + '.' + filename, package=mod.__name__)
     with open(filepath + ".py", "r") as f:
         code = f.read()
+
+    # add additional ggplot themeing code from the settings.py file
+    code = code[:-1] + " \\\n"
+    code += " " * 8 + "+ ggplot.theme(**theme_minimal) \\\n" + " " * 8 + "+ ggplot.theme(**theme_my)\n"
+
+    # add command that actually plots the plot
+    code += " " * 4 + "plot_fixed_width(pp)"
+
+    # print(code)
 
     exec(code, globals())
 
