@@ -35,8 +35,12 @@ from os import makedirs, listdir
 global settings
 global project_base_dir
 
+import sys
+
 # load local settings
 if exists(join(dirname(__file__), "settings.py")):
+    # sys.path.append(join(dirname(__file__)))
+    # import settings
     from settings import *
 
 def athome():
@@ -304,25 +308,7 @@ def save_figure(f_plot, tab_data, filename_output, b_serialize=True, fac_size=1)
     else:
         generate_figure(filename_output)
 
-def generate_figure(filepath):
-    # this is all for plotting functions ---
-
-
-    from warnings import filterwarnings
-
-    # switch off R warnings
-    filterwarnings("ignore", category=RRuntimeWarning)
-
-    grdevices = importr("grDevices")
-    tikzDevice = importr("tikzDevice")
-    scales = importr("scales")
-    grid = importr("grid")
-
-
-    # ---
-
-    # load the data
-
+def load_figure_data(filepath):
     # here starts the newly added support for multiple parameters
 
     # first: find the associated files
@@ -347,14 +333,14 @@ def generate_figure(filepath):
             if idx:
                 indices.append(int(idx))
             else:
-                indices.append(len(cur_data_file_names)-1)
+                indices.append(len(cur_data_file_names) - 1)
 
     cur_data_file_names = [cur_data_file_names[_] for _ in indices]
 
     # this is a function that reads data from ascii files
     def loaddata(filename):
         with open(filename + '.data', 'r') as file:
-            format = file.readline()[:-1] # remove newline character
+            format = file.readline()[:-1]  # remove newline character
 
         if format == "<class 'pandas.core.frame.DataFrame'>":
             return pd.read_csv(filename + '.data', skiprows=1)
@@ -369,7 +355,7 @@ def generate_figure(filepath):
             raise RuntimeError('unknown format')
 
     if len(cur_data_file_names) == 1:
-        tab_data = loaddata(join(dirname(filepath), cur_data_file_names[0])) #pd.read_csv(file[0] + '.data')
+        tab_data = loaddata(join(dirname(filepath), cur_data_file_names[0]))  # pd.read_csv(file[0] + '.data')
     else:
         tab_data = []
         for file in cur_data_file_names:
@@ -384,6 +370,35 @@ def generate_figure(filepath):
     # plot = import_module(path_package + '.' + filename, package=mod.__name__)
     with open(filepath + ".py", "r") as f:
         code = f.read()
+
+    # load size information
+    with open(filepath + '.size', 'r') as file:
+        fac_size = file.readlines()
+
+    fac_size = [float(_) for _ in fac_size]
+
+    return tab_data, code, fac_size
+
+def generate_figure(filepath, tikzexternalize=True):
+    # this is all for plotting functions ---
+
+
+    from warnings import filterwarnings
+
+    # switch off R warnings
+    filterwarnings("ignore", category=RRuntimeWarning)
+
+    grdevices = importr("grDevices")
+    tikzDevice = importr("tikzDevice")
+    scales = importr("scales")
+    grid = importr("grid")
+
+
+    # ---
+
+    # load the data
+    tab_data, code, fac_size = load_figure_data(filepath)
+
 
     # add additional ggplot themeing code from the settings.py file
     code = code[:-1] + " \\\n"
@@ -413,11 +428,7 @@ def generate_figure(filepath):
     width_in = point2inch(textwidth_pt)
     height_in = point2inch(textwidth_pt) / golden_ratio
 
-    # load size information
-    with open(filepath + '.size', 'r') as file:
-        fac_size = file.readlines()
 
-    fac_size = [float(_) for _ in fac_size]
 
     width_in *= fac_size[0]
     height_in *= fac_size[1]
@@ -450,7 +461,9 @@ def generate_figure(filepath):
         grdevices.dev_off()
 
     adjust_relative_raster_path(filepath)
-    run_tikzexternalize(filepath)
+
+    if tikzexternalize:
+        run_tikzexternalize(filepath)
 
 def adjust_relative_raster_path(filepath):
     plot_name = split(filepath)[1]
@@ -472,7 +485,7 @@ def adjust_relative_raster_path(filepath):
 
 def run_tikzexternalize(filepath):
     # remove relative path indicators
-    jobname =  filepath.replace("../", "")
+    jobname =  filepath.replace("../", "").replace("./", "")
 
     global filename_tex
 
