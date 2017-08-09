@@ -5,6 +5,7 @@ Created on Wed Oct 14 01:38:04 2015
 @author: matthias
 """
 
+import os
 from os import getcwd, rename
 from os.path import sep, join, exists, split, dirname, basename, splitext, abspath
 
@@ -480,11 +481,18 @@ def run_tikzexternalize(filepath):
     filename_tex_base = basename(filename_tex)
 
     # run pdflatex with the current plot's jobname
-    command = "pdflatex"
+    if True:
+        command = "pdflatex"
+    else:
+        command = "lualatex"
+
     arguments = "--jobname={}".format(jobname, filename_tex_base)
 
+    # open the null device to redirect the standard output
+    FNULL = open(os.devnull, 'w')
+
     from subprocess import Popen
-    p = Popen([command, arguments, filename_tex_base, '> /dev/null'], cwd=path_tex)
+    p = Popen([command, arguments, filename_tex_base], cwd=path_tex, stdout=FNULL)
     p.wait()
 
     # call([command, arguments])
