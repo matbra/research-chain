@@ -5,7 +5,7 @@ import rpy2.robjects.lib.ggplot2 as ggplot
 
 # for tikxexternalize support
 from os.path import join, dirname, abspath
-filename_tex = abspath(join(dirname(__file__), *[".."]*6, "main.tex"))
+filename_tex = abspath(join(dirname(__file__), *[".."]*6, "article.tex"))
 
 scales = importr("scales")
 grid = importr("grid")

@@ -26,6 +26,8 @@ import datetime
 
 import shutil
 
+import importlib.util
+
 import re
 
 import pandas as pd
@@ -41,7 +43,12 @@ import sys
 if exists(join(dirname(__file__), "settings.py")):
     # sys.path.append(join(dirname(__file__)))
     # import settings
-    from settings import *
+    # from settings import *
+    spec = importlib.util.spec_from_file_location("settings",join(dirname(__file__), "settings.py"))
+    foo = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(foo)
+    theme_base = foo.theme_base
+    filename_tex = foo.filename_tex
 
 def athome():
     return gethostname() == 'hauptmaschine'
@@ -69,7 +76,7 @@ if athome():
 def point2inch(point):
     return point / 72
 
-textwidth_pt = 386.95749
+textwidth_pt = 486.0#386.95749
 
 golden_ratio = (1 + 5**(1/2)) / 2
 
@@ -511,7 +518,7 @@ def run_tikzexternalize(filepath):
 
     arguments = ["--jobname={}".format(jobname, filename_tex_base), \
                  "--interaction=nonstopmode"]
-    arguments
+    # arguments
 
     # open the null device to redirect the standard output
     FNULL = open(os.devnull, 'w')
