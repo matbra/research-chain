@@ -379,7 +379,7 @@ def load_figure_data(filepath):
 
     return tab_data, code, fac_size
 
-def generate_figure(filepath, tikzexternalize=True):
+def generate_figure(filepath, tikzexternalize=True, fac_size=1):
     # this is all for plotting functions ---
 
 
@@ -397,12 +397,22 @@ def generate_figure(filepath, tikzexternalize=True):
     # ---
 
     # load the data
-    tab_data, code, fac_size = load_figure_data(filepath)
+    tab_data, code, fac_size_orig = load_figure_data(filepath)
+
+    fac_size = [_*fac_size for _ in fac_size_orig]
 
 
     # add additional ggplot themeing code from the settings.py file
-    code = code[:-1] + " \\\n"
-    code += " " * 8 + "+ ggplot.theme(**theme_minimal) \\\n" + " " * 8 + "+ ggplot.theme(**theme_my)\n"
+    # code_lines = code.split("\n")
+
+    code = "\n".join([_ + ' + ggplot.theme(**theme_base)' if _.strip().startswith("gp") else _ for _ in
+               code.split("\n")])
+
+
+    # first find the line that defines the "gp" variable
+
+    # code = code[:-1] + " \\\n"
+    # code += " " * 8 + "+ ggplot.theme(**theme_minimal) \\\n" + " " * 8 + "+ ggplot.theme(**theme_my)\n"
 
     # add command that actually plots the plot
     code += " " * 4 + "plot_fixed_width(pp)"
@@ -499,13 +509,15 @@ def run_tikzexternalize(filepath):
     else:
         command = "lualatex"
 
-    arguments = "--jobname={}".format(jobname, filename_tex_base)
+    arguments = ["--jobname={}".format(jobname, filename_tex_base), \
+                 "--interaction=nonstopmode"]
+    arguments
 
     # open the null device to redirect the standard output
     FNULL = open(os.devnull, 'w')
 
     from subprocess import Popen
-    p = Popen([command, arguments, filename_tex_base], cwd=path_tex, stdout=FNULL)
+    p = Popen([command, *arguments, filename_tex_base], cwd=path_tex, stdout=FNULL)
     p.wait()
 
     # call([command, arguments])
