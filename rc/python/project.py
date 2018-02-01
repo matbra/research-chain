@@ -412,7 +412,7 @@ def generate_figure(filepath, tikzexternalize=True, fac_size=1):
     # add additional ggplot themeing code from the settings.py file
     # code_lines = code.split("\n")
 
-    code = "\n".join([_ + ' + ggplot.theme(**theme_base)' if _.strip().startswith("gp") else _ for _ in
+    code = "\n".join([_ + ' + ggplot.theme_minimal() + ggplot.theme(**theme_base)' if _.strip().startswith("gp") else _ for _ in
                code.split("\n")])
 
 
@@ -431,7 +431,7 @@ def generate_figure(filepath, tikzexternalize=True, fac_size=1):
     # plot.tab_data = tab_data
 
     robj.r("Sys.setlocale('LC_NUMERIC', 'en_GB.UTF-8')")
-    robj.r("options(tikzLatexPackages = c(getOption('tikzLatexPackages'), '\\\\usepackage{amsmath}'))")
+    robj.r("options(tikzLatexPackages = c(getOption('tikzLatexPackages'), '\\\\usepackage{amsmath}', '\\\\usepackage{siunitx}'))")
 
     robj.r("options(tikzMetricPackages = c(getOption('tikzMetricPackages'), '\\\\usepackage{amsmath}'))")
     #
