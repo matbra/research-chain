@@ -1,0 +1,38 @@
+\documentclass{article}
+
+\usepackage{tikz}
+\usepackage{tikzscale}
+
+\pgfrealjobname{test}
+
+\begin{document}
+This is some text. There is also a figure.
+
+%\begin{figure}
+%\beginpgfgraphicnamed{figures/test1}
+%\includegraphics{figures/test1}
+%\endpgfgraphicnamed
+%\end{figure}
+%\end{document}
+
+And there is a second figure.
+
+%\begin{figure}
+%\beginpgfgraphicnamed{figures/test2}
+%\includegraphics{figures/test2}
+%\endpgfgraphicnamed
+%\end{figure}
+%\end{document}
+
+Put everything together...
+
+\begin{figure}
+\beginpgfgraphicnamed{figures/test1}
+\includegraphics[width=\textwidth]{figures/test1}
+\endpgfgraphicnamed%
+\beginpgfgraphicnamed{figures/test2}
+\includegraphics[width=\textwidth]{figures/test2}
+\endpgfgraphicnamed
+\end{figure}
+\end{document}
+

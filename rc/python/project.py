@@ -39,15 +39,18 @@ global project_base_dir
 
 import sys
 
-# load local settings
+# load default settings
 if exists(join(dirname(__file__), "settings.py")):
-    # sys.path.append(join(dirname(__file__)))
-    # import settings
-    # from settings import *
-    spec = importlib.util.spec_from_file_location("settings",join(dirname(__file__), "settings.py"))
+    spec = importlib.util.spec_from_file_location("settings", join(dirname(__file__), "settings.py"))
     foo = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(foo)
     theme_base = foo.theme_base
+
+# load project settings
+if exists("rc_settings.py"):
+    spec = importlib.util.spec_from_file_location("rc_settings", join("rc_settings.py"))
+    foo = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(foo)
     filename_tex = foo.filename_tex
 
 def athome():
@@ -66,8 +69,13 @@ if athome():
             function(p) {
             grob = ggplotGrob(p)
 
+            # print(grob)
+
             # TODO: the magic 3 here could lead to problems. find the right "spacer" element...
-            grob$widths[3] = unit(1, "cm")
+            # grob$widths[0] = unit(3, "cm") # don't know what that width is
+            # grob$widths[1] = unit(3, "cm") # spacing between left edge and y axis label?
+            grob$widths[2] = unit(0.5, "cm") # ??
+            grob$widths[3] = unit(1.5, "cm") # space between y axis label and panel
 
             grid.draw(grob)
             }
@@ -271,7 +279,7 @@ def save_figure(f_plot, tab_data, filename_output, b_serialize=True, fac_size=1)
             f.write("import numpy as np\n")
             f.write("sys.path.append(\"{}\")\n".format(dirname(__file__)))
             # f.write("from project import ggplot, theme_minimal, theme_my, plot_fixed_width\n")
-            f.write("from project import plot_fixed_width\n")
+            #f.write("from project import plot_fixed_width\n")
             f.write("import rpy2.robjects as robj\n\n")
             f.write(cleancode(getsource(f_plot)))
             # f.write("\n    width, height = set_panel_size(pp)\n")
