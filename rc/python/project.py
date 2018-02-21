@@ -45,6 +45,8 @@ if exists(join(dirname(__file__), "settings.py")):
     foo = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(foo)
     theme_base = foo.theme_base
+    filename_tex = getattr(foo, 'filename_tex', None)
+
 
 # load project settings
 if exists("rc_settings.py"):
@@ -74,7 +76,7 @@ if athome():
             # TODO: the magic 3 here could lead to problems. find the right "spacer" element...
             # grob$widths[0] = unit(3, "cm") # don't know what that width is
             # grob$widths[1] = unit(3, "cm") # spacing between left edge and y axis label?
-            grob$widths[2] = unit(0.5, "cm") # ??
+            grob$widths[2] = unit(1, "cm") # ??
             grob$widths[3] = unit(1.5, "cm") # space between y axis label and panel
 
             grid.draw(grob)
@@ -458,12 +460,14 @@ def generate_figure(filepath, tikzexternalize=True, fac_size=1):
     width_in *= fac_size[0]
     height_in *= fac_size[1]
 
+    documentDeclaration="\documentclass[ twoside,openright,titlepage,numbers=noenddot,headinclude,footinclude=true,cleardoublepage=empty,abstractoff, BCOR=5mm,paper=a4,fontsize=11pt,ngerman,american,]{scrreprt}"
+
 
     for format in GRAPHIC_FORMATS:
         if format == 'tikz':
-            tikzDevice.tikz(file=filepath + ".tikz", standAlone=False, \
-                    documentDeclaration="\documentclass[12pt]{scrreport}", \
+            tikzDevice.tikz(file=filepath + ".tikz", standAlone=False, documentDeclaration = documentDeclaration,
                     width=width_in, height=height_in)#, packages="\\usepackage{amsmath}")
+            # documentDeclaration="\documentclass[12pt]{scrreport}", \
             #tikzDevice.tikzAnnotate("\let\pgfimageWithoutPath\pgfimage")
             #tikzDevice.tikzAnnotate("\renewcommand{\pgfimage}[2][]{\pgfimageWithoutPath[#1]{figures/#2}}")
         elif format == 'pdf':
@@ -519,7 +523,7 @@ def run_tikzexternalize(filepath):
     filename_tex_base = basename(filename_tex)
 
     # run pdflatex with the current plot's jobname
-    if True:
+    if False:
         command = "pdflatex"
     else:
         command = "lualatex"
@@ -532,7 +536,7 @@ def run_tikzexternalize(filepath):
     FNULL = open(os.devnull, 'w')
 
     from subprocess import Popen
-    p = Popen([command, *arguments, filename_tex_base], cwd=path_tex, stdout=FNULL)
+    p = Popen([command, *arguments, filename_tex_base], cwd=path_tex)#, stdout=FNULL)
     p.wait()
 
     # call([command, arguments])
